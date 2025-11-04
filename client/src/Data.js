@@ -164,4 +164,14 @@ export default class Data {
       throw new Error();
     }
   }
+  /**
+   * Send password reset request
+   * @param {String} emailAddress
+   */
+  async forgotPassword(emailAddress) {
+    const response = await this.api('/password/forgot', 'POST', { emailAddress });
+    return response.json();
+  }
+
 }
+

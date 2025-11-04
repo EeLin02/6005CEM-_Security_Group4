@@ -67,6 +67,8 @@ const UserSignIn = () => {
         <button className="button button-secondary" onClick={cancel}>Cancel</button>
       </form>
       <p>Don't have a user account? Click here to <Link to='/signup'>sign up!</Link></p>
+      <p>Forgot your password? Click here to <Link to='/forgot-password'>reset it.</Link></p>
+
 
     </div>
   );

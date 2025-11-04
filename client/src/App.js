@@ -8,12 +8,16 @@ import UpdateCourse from './Components/Courses/UpdateCourse';
 import UserSignIn from './Components/User/UserSignIn';
 import UserSignUp from './Components/User/UserSignUp';
 import UserSignOut from './Components/User/UserSignOut';
+import ForgotPassword from './Components/User/ForgotPassword';
+import ResetPassword from './Components/User/ResetPassword';
+
 import CreateCourse from './Components/Courses/CreateCourse';
 import NotFound from './Components/Errors/NotFound';
 import Forbidden from './Components/Errors/Forbidden';
 import UnhandledError from './Components/Errors/UnhandledError';
 
 import PrivateRoute from './PrivateRoute';
+
 
 function App() {
   return (
@@ -29,6 +33,8 @@ function App() {
           </Route>
           <Route path="/signin" element={<UserSignIn />} />
           <Route path="/signup" element={<UserSignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/signout" element={<UserSignOut />} />
           <Route path="/courses/create" element={<PrivateRoute />}>
             <Route path="/courses/create" element={<CreateCourse />} />

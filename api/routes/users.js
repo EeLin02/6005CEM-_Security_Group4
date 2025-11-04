@@ -1,42 +1,68 @@
+'use strict';
 const express = require('express');
-
-const router = express.Router();
-const User = require('../models').User;
+const bcrypt = require('bcryptjs'); // ✅ For password hashing
+const { User } = require('../models');
 const { authenticateUser } = require('../middleware/auth-user');
 const { asyncHandler } = require('../middleware/async-handler');
 
-// Return the list of users
-router.get('/users', authenticateUser, asyncHandler(async (req, res) => {
+const router = express.Router();
+
+// ✅ GET /api/users → return the current authenticated user
+router.get('/', authenticateUser, asyncHandler(async (req, res) => {
   const user = req.currentUser;
 
   const userResult = await User.findOne({
-    where: {
-      emailAddress: user.emailAddress
-    },
-    attributes: {
-      exclude: ['password', 'createdAt', 'updatedAt']
-    }
+    where: { emailAddress: user.emailAddress },
+    attributes: { exclude: ['password', 'createdAt', 'updatedAt'] }
   });
 
   res.json(userResult);
 }));
 
-// Create a user
-router.post('/users', asyncHandler(async (req, res) => {
+// ✅ POST /api/users → create a new user
+router.post('/', asyncHandler(async (req, res) => {
   try {
-    await User.create(req.body);
-    res.status(201)
-      .location('/')
-      .end();
+    const user = req.body;
+
+    // ✅ Validate password rules
+    if (!user.password || user.password.length < 8) {
+      return res.status(400).json({
+        errors: ['Password must be at least 8 characters long.']
+      });
+    }
+
+    // ✅ Hash the password before saving
+    user.password = await bcrypt.hash(user.password, 10);
+
+    await User.create(user);
+    res.status(201).location('/').end();
   } catch (error) {
-    if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+      console.error('🧱 Error creating user:', error); // <--- ADD THIS
+
+    if (
+      error.name === 'SequelizeValidationError' ||
+      error.name === 'SequelizeUniqueConstraintError'
+    ) {
       const errors = error.errors.map(err => err.message);
-      res.status(400).json({ errors: errors });
+      res.status(400).json({ errors });
     } else {
+      console.error('Unexpected error creating user:', error);
       res.status(400).json({ error: error.message });
     }
   }
 }));
 
-module.exports = router;
+// 🔍 DEBUG ROUTE — check all users (temporary for testing)
+router.get('/all', asyncHandler(async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
+    });
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+}));
 
+module.exports = router;
