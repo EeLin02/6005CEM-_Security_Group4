@@ -12,66 +12,101 @@ const UserSignIn = () => {
   let location = useLocation();
 
   const onChange = (event) => {
-    const name = event.target.name;
-    const value = event.target.value;
+    const { name, value } = event.target;
 
     if (name === 'emailAddress') {
       setEmailAddress(value);
     }
-
     if (name === 'password') {
       setPassword(value);
     }
-  }
+  };
 
-  const submit = (event) => {
-    event.preventDefault();
-    // Navigate to where the user visited the Sign In page "from", if applicable
-    const { from } = location.state || { from: { pathname: '/' } };
+  const submit = async (event) => {
+  event.preventDefault();
+  const { from } = location.state || { from: { pathname: '/' } };
 
-    context.actions.signIn(emailAddress, password)
-      .then((response) => {
-        if (response !== null && response.id) {
-          navigate(from);
-        } else {
-          setErrors(response.message);
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        navigate('/error');
-      });
+  try {
+  const response = await context.actions.signIn(emailAddress, password);
+
+  if (response?.message?.toLowerCase().includes('locked')) {
+    const extra = response.details ? ` ${response.details}` : '';
+    setErrors([response.message + extra]);
+  } else if (response?.id) {
+    navigate(from);
+  } else {
+    setErrors(['Invalid email or password.']);
   }
+} catch (error) {
+    console.error('Sign-in error:', error);
+
+    // Handle errors thrown from fetch (e.g. 401/403 responses)
+    if (error.response) {
+      if (error.response.status === 403) {
+        setErrors([error.response.data.message || 'Your account is temporarily locked.']);
+      } else if (error.response.status === 401) {
+        setErrors(['Invalid email or password.']);
+      } else {
+        setErrors(['Unexpected error occurred.']);
+      }
+    } else {
+      setErrors(['Unexpected error occurred.']);
+    }
+  }
+};
+
 
   const cancel = (event) => {
     event.preventDefault();
     navigate('/');
-  }
+  };
 
   return (
     <div className="form--centered">
       <h2>Sign In</h2>
-      {errors.length ?
+      {errors.length > 0 && (
         <div className="validation--errors">
           <h3>Sign in unsuccessful</h3>
-          <p>Please check your email address and password and try again.</p>
+          <ul>
+            {errors.map((error, i) => (
+              <li key={i}>{error}</li>
+            ))}
+          </ul>
         </div>
-        : null
-      }
+      )}
       <form>
         <label htmlFor="emailAddress">Email Address</label>
-        <input id="emailAddress" name="emailAddress" type="email" value={emailAddress} onChange={onChange} />
+        <input
+          id="emailAddress"
+          name="emailAddress"
+          type="email"
+          value={emailAddress}
+          onChange={onChange}
+        />
         <label htmlFor="password">Password</label>
-        <input id="password" name="password" type="password" value={password} onChange={onChange} />
-        <button className="button" type="submit" onClick={submit}>Sign In</button>
-        <button className="button button-secondary" onClick={cancel}>Cancel</button>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          value={password}
+          onChange={onChange}
+        />
+        <button className="button" type="submit" onClick={submit}>
+          Sign In
+        </button>
+        <button className="button button-secondary" onClick={cancel}>
+          Cancel
+        </button>
       </form>
-      <p>Don't have a user account? Click here to <Link to='/signup'>sign up!</Link></p>
-      <p>Forgot your password? Click here to <Link to='/forgot-password'>reset it.</Link></p>
-
-
+      <p>
+        Don't have a user account? Click here to <Link to="/signup">sign up!</Link>
+      </p>
+      <p>
+        Forgot your password? Click here to{' '}
+        <Link to="/forgot-password">reset it.</Link>
+      </p>
     </div>
   );
-}
+};
 
 export default UserSignIn;

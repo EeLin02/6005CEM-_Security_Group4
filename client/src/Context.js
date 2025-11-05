@@ -39,15 +39,20 @@ export class Provider extends Component {
    * @returns {Object} user
    */
   signIn = async (emailAddress, password) => {
-    const user = await this.data.getUser(emailAddress, password);
-    if (user !== null && user.id) {
-      const authenticatedUser = { ...user, password };
-      this.setState({ authenticatedUser });
-      //  FIXED: use set() directly with stringified data
-      Cookies.set('authenticatedUser', JSON.stringify(authenticatedUser), { expires: 1 });
-    }
-    return user;
+  // 🔄 Use the new signIn() from Data.js (handles 401 + 403 + lock message)
+  const user = await this.data.signIn(emailAddress, password);
+
+  // ✅ Successful login
+  if (user && user.id) {
+    const authenticatedUser = { ...user, password };
+    this.setState({ authenticatedUser });
+    Cookies.set('authenticatedUser', JSON.stringify(authenticatedUser), { expires: 1 });
   }
+
+  // ❌ Return message (if account locked or invalid)
+  return user;
+};
+
 
   /**
    * Signs the user out by setting a null authenticated user and removing cookies

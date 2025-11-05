@@ -50,6 +50,27 @@ export default class Data {
     }
   }
 
+  async signIn(emailAddress, password) {
+  const encodedCredentials = btoa(`${emailAddress}:${password}`);
+  const response = await fetch('http://localhost:5000/api/users', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Basic ${encodedCredentials}`,
+    },
+  });
+
+  if (response.status === 200) {
+    return response.json();
+  } else if (response.status === 401 || response.status === 403) {
+    const errorData = await response.json();
+    return errorData; // ✅ return full object including message + details
+  } else {
+    throw new Error(`Unexpected status: ${response.status}`);
+  }
+}
+
+
+
   /**
    * Create a new user in the database
    * @param {Object} user 

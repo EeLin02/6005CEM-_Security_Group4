@@ -1,7 +1,7 @@
 const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  class Course extends Model { }
+  class Course extends Model {}
   Course.init({
     id: {
       type: DataTypes.INTEGER,
@@ -41,12 +41,13 @@ module.exports = (sequelize) => {
   }, { sequelize });
 
   Course.associate = (models) => {
-    Course.belongsTo(models.User, {
-      foreignKey: {
-        fieldName: 'userid',
-      }
-    });
-  }
+  Course.belongsTo(models.User, {
+    foreignKey: {
+      fieldName: 'userId',
+      allowNull: false
+    },
+  });
+};
 
   return Course;
-}
+};

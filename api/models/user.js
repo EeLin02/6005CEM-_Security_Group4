@@ -46,7 +46,17 @@ module.exports = (sequelize) => {
           msg: 'Your password should be between 8 and 100 characters.'
         }
       }
+    },
+    // Added fields for login attempt security
+    loginAttempts: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    lockUntil: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
+  
   }, { sequelize });
 
   User.associate = (models) => {
