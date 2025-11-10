@@ -9,6 +9,10 @@ const UserSignUp = () => {
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState([]);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [secret, setSecret] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [token, setToken] = useState('');
 
   let navigate = useNavigate();
 
@@ -44,15 +48,29 @@ const UserSignUp = () => {
     };
 
     context.data.createUser(user)
-      .then(errors => {
-        // If creating a user is unsuccessful, response with errors would be returned
-        if (errors.length) {
-          setErrors(errors);
+      .then(data => {
+        if (data.errors) {
+          setErrors(data.errors);
         } else {
-          context.actions.signIn(emailAddress, password)
-            .then(() => {
-              navigate('/');
-            });
+          setQrCodeUrl(data.qrCodeUrl);
+          setSecret(data.secret);
+          setUserId(data.userId);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        navigate('/error');
+      });
+  }
+
+  const handleVerify2FA = (event) => {
+    event.preventDefault();
+    context.actions.login2FA(userId, token)
+      .then(user => {
+        if (user) {
+          navigate('/');
+        } else {
+          setErrors(['Invalid 2FA token.']);
         }
       })
       .catch((error) => {
@@ -78,20 +96,33 @@ const UserSignUp = () => {
         </div>
         : null
       }
-      <form>
-        <label htmlFor="firstName">First Name</label>
-        <input id="firstName" name="firstName" type="text" value={firstName} onChange={onChange} />
-        <label htmlFor="lastName">Last Name</label>
-        <input id="lastName" name="lastName" type="text" value={lastName} onChange={onChange} />
-        <label htmlFor="emailAddress">Email Address</label>
-        <input id="emailAddress" name="emailAddress" type="email" value={emailAddress} onChange={onChange} />
-        <label htmlFor="password">Password</label>
-        <input id="password" name="password" type="password" value={password} onChange={onChange} />
-        <button className="button" type="submit" onClick={submit}>Sign Up</button>
-        <button className="button button-secondary" onClick={cancel}>Cancel</button>
-      </form>
+      {!qrCodeUrl ? (
+        <form>
+          <label htmlFor="firstName">First Name</label>
+          <input id="firstName" name="firstName" type="text" value={firstName} onChange={onChange} />
+          <label htmlFor="lastName">Last Name</label>
+          <input id="lastName" name="lastName" type="text" value={lastName} onChange={onChange} />
+          <label htmlFor="emailAddress">Email Address</label>
+          <input id="emailAddress" name="emailAddress" type="email" value={emailAddress} onChange={onChange} />
+          <label htmlFor="password">Password</label>
+          <input id="password" name="password" type="password" value={password} onChange={onChange} />
+          <button className="button" type="submit" onClick={submit}>Sign Up</button>
+          <button className="button button-secondary" onClick={cancel}>Cancel</button>
+        </form>
+      ) : (
+        <div>
+          <h3>Set up 2-Factor Authentication</h3>
+          <p>Scan the QR code with your authenticator app.</p>
+          <img src={qrCodeUrl} alt="QR Code" />
+          <p>Your secret key is: {secret}</p>
+          <form>
+            <label htmlFor="token">Enter 2FA Token</label>
+            <input id="token" name="token" type="text" value={token} onChange={(e) => setToken(e.target.value)} />
+            <button className="button" type="submit" onClick={handleVerify2FA}>Verify</button>
+          </form>
+        </div>
+      )}
       <p>Already have a user account? Click here to <Link to='/signin'>sign in!</Link></p>
-
     </div>
   );
 }

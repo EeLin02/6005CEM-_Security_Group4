@@ -55,6 +55,10 @@ module.exports = (sequelize) => {
     lockUntil: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    secretKey: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   
   }, { sequelize });

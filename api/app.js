@@ -5,6 +5,7 @@ const express = require('express');
 const morgan = require('morgan');
 const { sequelize } = require('./models');
 const cors = require('cors');
+require('dotenv').config();
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';

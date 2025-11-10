@@ -28,7 +28,9 @@
     "morgan": "^1.10.0",
     "nodemailer": "^7.0.10",
     "promise.prototype.finally": "^3.1.2",
+    "qrcode": "^1.5.4",
     "sequelize": "^6.6.5",
+    "speakeasy": "^2.0.0",
     "sqlite3": "^5.0.2"
   }
 }

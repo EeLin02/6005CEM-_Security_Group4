@@ -10,6 +10,7 @@ import UserSignUp from './Components/User/UserSignUp';
 import UserSignOut from './Components/User/UserSignOut';
 import ForgotPassword from './Components/User/ForgotPassword';
 import ResetPassword from './Components/User/ResetPassword';
+import Settings from './Components/User/Settings';
 
 import CreateCourse from './Components/Courses/CreateCourse';
 import NotFound from './Components/Errors/NotFound';
@@ -35,6 +36,9 @@ function App() {
           <Route path="/signup" element={<UserSignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/settings" element={<PrivateRoute />}>
+            <Route path="/settings" element={<Settings />} />
+          </Route>
           <Route path="/signout" element={<UserSignOut />} />
           <Route path="/courses/create" element={<PrivateRoute />}>
             <Route path="/courses/create" element={<CreateCourse />} />

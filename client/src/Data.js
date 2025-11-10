@@ -50,25 +50,21 @@ export default class Data {
     }
   }
 
-  async signIn(emailAddress, password) {
-  const encodedCredentials = btoa(`${emailAddress}:${password}`);
-  const response = await fetch('http://localhost:5000/api/users', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Basic ${encodedCredentials}`,
-    },
-  });
-
-  if (response.status === 200) {
-    return response.json();
-  } else if (response.status === 401 || response.status === 403) {
-    const errorData = await response.json();
-    return errorData; // ✅ return full object including message + details
-  } else {
-    throw new Error(`Unexpected status: ${response.status}`);
-  }
-}
-
+    async signIn(emailAddress, password) {
+      const response = await this.api('/users', 'GET', null, true, { username: emailAddress, password });
+      if (response.status === 200) {
+        return response.json();
+      } else if (response.status === 402) {
+        const error = new Error();
+        error.response = response;
+        throw error;
+      } else if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json();
+        return errorData;
+      } else {
+        throw new Error(`Unexpected status: ${response.status}`);
+      }
+    }
 
 
   /**
@@ -79,7 +75,7 @@ export default class Data {
   async createUser(user) {
     const response = await this.api('/users', 'POST', user);
     if (response.status === 201) {
-      return [];
+      return response.json();
     }
     else if (response.status === 400) {
       return response.json().then(data => {
@@ -194,5 +190,41 @@ export default class Data {
     return response.json();
   }
 
+  async updateUser(user, emailAddress, oldPassword) {
+    const response = await this.api(`/users`, 'PUT', user, true, { username: emailAddress, password: oldPassword });
+    if (response.status === 204) {
+      return [];
+    }
+    else if (response.status === 400) {
+      return response.json().then(data => {
+        return data.errors;
+      });
+    }
+    else {
+      throw new Error();
+    }
+  }
+
+  async verifyPassword(password, emailAddress, currentPassword) {
+    const response = await this.api(`/users/verify-password`, 'POST', { password }, true, { username: emailAddress, password: currentPassword });
+    console.log(response);
+    return response;
+  }
+
+  async verify2FA(userId, token) {
+    const response = await this.api(`/users/verify-2fa`, 'POST', { userId, token });
+    return response;
+  }
+
+  async login2FA(userId, token) {
+    const response = await this.api(`/users/login-2fa`, 'POST', { userId, token });
+    if (response.status === 200) {
+      return response.json();
+    } else {
+      return response.json().then(data => {
+        return data;
+      });
+    }
+  }
 }
 

@@ -1,5 +1,5 @@
 const auth = require('basic-auth');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 
 /**
@@ -36,6 +36,10 @@ exports.authenticateUser = async (req, res, next) => {
         user.loginAttempts = 0;
         user.lockUntil = null;
         await user.save();
+
+        if (user.secretKey) {
+          return res.status(402).json({ message: '2FA required.', userId: user.id });
+        }
 
         req.currentUser = user;
         return next();
