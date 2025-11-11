@@ -47,6 +47,15 @@ module.exports = (sequelize) => {
         }
       }
     },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'student',
+      validate: {
+        isIn: [['student', 'teacher']]
+      }
+    },
+    
     // Added fields for login attempt security
     loginAttempts: {
       type: DataTypes.INTEGER,

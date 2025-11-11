@@ -19,7 +19,6 @@ import UnhandledError from './Components/Errors/UnhandledError';
 
 import PrivateRoute from './PrivateRoute';
 
-
 function App() {
   return (
     <div id="root">

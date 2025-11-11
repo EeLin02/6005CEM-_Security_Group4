@@ -4,13 +4,15 @@
       "firstName": "Joe",
       "lastName": "Smith",
       "emailAddress": "joe@smith.com",
-      "password": "joepassword"
+      "password": "joepassword",
+      "role": "teacher"
     },
     {
       "firstName": "Sally",
       "lastName": "Jones",
       "emailAddress": "sally@jones.com",
-      "password": "sallypassword"
+      "password": "sallypassword",
+      "role": "student"
     }
   ],
   "courses": [

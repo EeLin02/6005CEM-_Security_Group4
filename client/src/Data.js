@@ -2,97 +2,90 @@ import config from './config';
 
 export default class Data {
   /**
-   * Function to make Fetch requests to our custom REST API
-   * @param {*} path - route or path to API endpoint e.g. /courses, /users
-   * @param {*} method - e.g. POST, GET
-   * @param {*} body - body of the request (optional)
-   * @param {*} requiresAuth - whether the API request requires authentication
-   * @param {*} credentials - if API request requires authentication, enter in user's credentials (username/email address and password)
-   * @returns {function} Make the Fetch API request
-   */
-  api(path, method = 'GET', body = null, requiresAuth = false, credentials = null) {
-    const url = config.apiBaseUrl + path;
-
-    const options = {
-      method,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-    };
-
-    if (body !== null) {
-      options.body = JSON.stringify(body);
-    }
-
-    if (requiresAuth) {
-      const encodedCredentials = btoa(`${credentials.username}:${credentials.password}`);
-      options.headers['Authorization'] = `Basic ${encodedCredentials}`;
-    }
-    return fetch(url, options);
-  }
-
-  /**
-   * Get the user from the database for Sign In
-   * @param {String} username - for Authentication, the user's email address acts as the "username"
-   * @param {String} password 
-   * @returns API response if successful
+   * Get the user from the database for Sign In (Basic Auth only for login)
    */
   async getUser(username, password) {
-    const response = await this.api(`/users`, 'GET', null, true, { username, password });
+    const encodedCredentials = btoa(`${username}:${password}`);
+    const response = await fetch(config.apiBaseUrl + '/users', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${encodedCredentials}`,
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      credentials: 'include', // ✅ Include cookies for future requests
+    });
+
     if (response.status === 200) {
       return response.json().then(data => data);
-    }
-    else if (response.status === 401) {
+    } else if (response.status === 401) {
       return response.json().then(message => message);
-    }
-    else {
+    } else {
       throw new Error();
     }
   }
 
-    async signIn(emailAddress, password) {
-      const response = await this.api('/users', 'GET', null, true, { username: emailAddress, password });
-      if (response.status === 200) {
-        return response.json();
-      } else if (response.status === 402) {
-        const error = new Error();
-        error.response = response;
-        throw error;
-      } else if (response.status === 401 || response.status === 403) {
-        const errorData = await response.json();
-        return errorData;
-      } else {
-        throw new Error(`Unexpected status: ${response.status}`);
-      }
-    }
+  /**
+   * Sign in user with Basic Auth
+   */
+  async signIn(emailAddress, password) {
+    const encodedCredentials = btoa(`${emailAddress}:${password}`);
+    const response = await fetch(config.apiBaseUrl + '/users', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${encodedCredentials}`,
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      credentials: 'include', // ✅ Accept HttpOnly cookies
+    });
 
+    if (response.status === 200) {
+      return response.json();
+    } else if (response.status === 402) {
+      const error = new Error();
+      error.response = response;
+      throw error;
+    } else if (response.status === 401 || response.status === 403) {
+      const errorData = await response.json();
+      return errorData;
+    } else {
+      throw new Error(`Unexpected status: ${response.status}`);
+    }
+  }
 
   /**
    * Create a new user in the database
-   * @param {Object} user 
-   * @returns empty response if successful
    */
   async createUser(user) {
-    const response = await this.api('/users', 'POST', user);
+    const response = await fetch(config.apiBaseUrl + '/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify(user),
+      credentials: 'include',
+    });
+
     if (response.status === 201) {
       return response.json();
-    }
-    else if (response.status === 400) {
-      return response.json().then(data => {
-        return data.errors;
-      });
-    }
-    else {
+    } else if (response.status === 400) {
+      return response.json().then(data => data.errors);
+    } else {
       throw new Error();
     }
   }
 
   /**
    * Get all available courses
-   * @returns API response if successful
    */
   async getCourses() {
-    const response = await this.api('/courses', 'GET', null, false);
+    const response = await fetch(config.apiBaseUrl + '/courses', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      credentials: 'include', // ✅ Include HttpOnly JWT cookie
+    });
+
     if (response.status === 200) {
       return response.json().then(data => data);
     } else {
@@ -102,11 +95,16 @@ export default class Data {
 
   /**
    * Get a specific course by id
-   * @param {String} id - Course ID
-   * @returns API response if successful
    */
   async getCourse(id) {
-    const response = await this.api(`/courses/${id}`, 'GET', null, false);
+    const response = await fetch(config.apiBaseUrl + `/courses/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      credentials: 'include', // ✅ Include HttpOnly JWT cookie
+    });
+
     if (response.status === 200) {
       return response.json().then(data => data);
     } else {
@@ -115,116 +113,147 @@ export default class Data {
   }
 
   /**
-   * Create a new course
-   * @param {Object} course - with title, description, estimated time and materials needed
-   * @param {String} username - user's email address
-   * @param {String} password 
-   * @returns empty response if successful
+   * ✅ Create a new course with JWT (from HttpOnly cookie)
    */
-  async createCourse(course, username, password) {
-    const response = await this.api('/courses', 'POST', course, true, { username, password });
+  async createCourse(course) {
+    const response = await fetch(config.apiBaseUrl + '/courses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        // JWT sent automatically in HttpOnly cookie
+      },
+      body: JSON.stringify(course),
+      credentials: 'include', // ✅ Send HttpOnly JWT cookie
+    });
+
     if (response.status === 201) {
       return [];
-    }
-    else if (response.status === 400) {
-      return response.json().then(data => {
-        return data.errors;
-      });
-    }
-    else {
+    } else if (response.status === 400) {
+      return response.json().then(data => data.errors);
+    } else {
       throw new Error();
     }
   }
 
   /**
-   * Delete a specific course
-   * Only users who are authors of the course are authorised to delete the course
-   * @param {String} id - Course ID
-   * @param {String} username - user's email address
-   * @param {String} password 
-   * @returns empty response if successful
+   * ✅ Delete a specific course with JWT (from HttpOnly cookie)
    */
-  async deleteCourse(id, username, password) {
-    const response = await this.api(`/courses/${id}`, 'DELETE', null, true, { username, password });
+  async deleteCourse(id) {
+    const response = await fetch(config.apiBaseUrl + `/courses/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      credentials: 'include', // ✅ Send HttpOnly JWT cookie
+    });
+
     if (response.status === 204) {
       return [];
-    }
-    else if (response.status === 400) {
-      return response.json().then(data => {
-        return data.errors;
-      });
-    }
-    else {
+    } else if (response.status === 400) {
+      return response.json().then(data => data.errors);
+    } else {
       throw new Error();
     }
   }
 
   /**
-   * Update a particular course
-   * @param {String} id - Course ID
-   * @param {Object} course - with updated title, description, estimated time and materials needed
-   * @param {String} username - user's email address
-   * @param {String} password 
-   * @returns empty response if successful
+   * ✅ Update a particular course with JWT (from HttpOnly cookie)
    */
-  async updateCourse(id, course, username, password) {
-    const response = await this.api(`/courses/${id}`, 'PUT', course, true, { username, password });
+  async updateCourse(id, course) {
+    const response = await fetch(config.apiBaseUrl + `/courses/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify(course),
+      credentials: 'include', // ✅ Send HttpOnly JWT cookie
+    });
+
     if (response.status === 204) {
       return [];
-    }
-    else if (response.status === 400) {
-      return response.json().then(data => {
-        return data.errors;
-      });
-    }
-    else {
+    } else if (response.status === 400) {
+      return response.json().then(data => data.errors);
+    } else {
       throw new Error();
     }
   }
+
   /**
    * Send password reset request
-   * @param {String} emailAddress
    */
   async forgotPassword(emailAddress) {
-    const response = await this.api('/password/forgot', 'POST', { emailAddress });
+    const response = await fetch(config.apiBaseUrl + '/password/forgot', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({ emailAddress }),
+      credentials: 'include',
+    });
     return response.json();
   }
 
+  /**
+   * Update user with Basic Auth
+   */
   async updateUser(user, emailAddress, oldPassword) {
-    const response = await this.api(`/users`, 'PUT', user, true, { username: emailAddress, password: oldPassword });
+    const encodedCredentials = btoa(`${emailAddress}:${oldPassword}`);
+    const response = await fetch(config.apiBaseUrl + `/users`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Basic ${encodedCredentials}`,
+      },
+      body: JSON.stringify(user),
+      credentials: 'include',
+    });
+
     if (response.status === 204) {
       return [];
-    }
-    else if (response.status === 400) {
-      return response.json().then(data => {
-        return data.errors;
-      });
-    }
-    else {
+    } else if (response.status === 400) {
+      return response.json().then(data => data.errors);
+    } else {
       throw new Error();
     }
   }
 
+  /**
+   * Verify password with Basic Auth
+   */
   async verifyPassword(password, emailAddress, currentPassword) {
-    const response = await this.api(`/users/verify-password`, 'POST', { password }, true, { username: emailAddress, password: currentPassword });
-    console.log(response);
+    const encodedCredentials = btoa(`${emailAddress}:${currentPassword}`);
+    const response = await fetch(config.apiBaseUrl + `/users/verify-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Basic ${encodedCredentials}`,
+      },
+      body: JSON.stringify({ password }),
+      credentials: 'include',
+    });
     return response;
   }
 
-  async verify2FA(userId, token) {
-    const response = await this.api(`/users/verify-2fa`, 'POST', { userId, token });
-    return response;
-  }
-
+  /**
+   * Login with 2FA token - returns JWT as HttpOnly cookie
+   */
   async login2FA(userId, token) {
-    const response = await this.api(`/users/login-2fa`, 'POST', { userId, token });
+    const response = await fetch(config.apiBaseUrl + `/users/login-2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({ userId, token }),
+      credentials: 'include', // ✅ Accept HttpOnly cookie
+    });
+
     if (response.status === 200) {
-      return response.json();
+      const data = await response.json();
+      // ✅ JWT is now in HttpOnly cookie (automatic)
+      console.log('✅ 2FA verified - JWT saved in secure HttpOnly cookie');
+      return data.user;
     } else {
-      return response.json().then(data => {
-        return data;
-      });
+      return response.json().then(data => data);
     }
   }
 }
-

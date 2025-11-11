@@ -1,0 +1,7 @@
+# Security
+.env
+api/.env
+
+# Dependencies
+node_modules/
+api/node_modules/

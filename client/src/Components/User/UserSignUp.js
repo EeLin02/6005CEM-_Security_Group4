@@ -8,6 +8,7 @@ const UserSignUp = () => {
   const [lastName, setLastName] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = React.useState("student");
   const [errors, setErrors] = useState([]);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [secret, setSecret] = useState('');
@@ -45,6 +46,7 @@ const UserSignUp = () => {
       lastName,
       emailAddress,
       password,
+      role,
     };
 
     context.data.createUser(user)
@@ -105,6 +107,17 @@ const UserSignUp = () => {
           <label htmlFor="emailAddress">Email Address</label>
           <input id="emailAddress" name="emailAddress" type="email" value={emailAddress} onChange={onChange} />
           <label htmlFor="password">Password</label>
+          <label htmlFor="role">Role:</label>
+          <select
+            name="role"
+            id="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="form-input"
+          >
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+          </select>
           <input id="password" name="password" type="password" value={password} onChange={onChange} />
           <button className="button" type="submit" onClick={submit}>Sign Up</button>
           <button className="button button-secondary" onClick={cancel}>Cancel</button>

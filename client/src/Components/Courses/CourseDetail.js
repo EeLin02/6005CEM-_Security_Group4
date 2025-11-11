@@ -65,7 +65,7 @@ const CourseDetail = () => {
 
   const handleDelete = (event) => {
     event.preventDefault();
-    context.data.deleteCourse(id, authUser.emailAddress, authUser.password)
+    context.data.deleteCourse(id)
       .then((response) => {
         // If course deletion is successful, then there should be no response returned
         if (response.length) {

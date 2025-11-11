@@ -33,14 +33,15 @@ class Database {
   createUser(user) {
     return this.context.execute(`
       INSERT INTO Users
-        (firstName, lastName, emailAddress, password, loginAttempts, lockUntil, createdAt, updatedAt)
+        (firstName, lastName, emailAddress, password, role, loginAttempts, lockUntil, createdAt, updatedAt)
       VALUES
-        (?, ?, ?, ?, 0, NULL, datetime('now'), datetime('now'));
+        (?, ?, ?, ?, ?, 0, NULL, datetime('now'), datetime('now'));
     `,
       user.firstName,
       user.lastName,
       user.emailAddress,
-      user.password
+      user.password,
+      user.role
     );
   }
 
@@ -97,9 +98,11 @@ class Database {
         firstName VARCHAR(255) NOT NULL DEFAULT '', 
         lastName VARCHAR(255) NOT NULL DEFAULT '', 
         emailAddress VARCHAR(255) NOT NULL DEFAULT '' UNIQUE, 
-        password VARCHAR(255) NOT NULL DEFAULT '', 
+        password VARCHAR(255) NOT NULL DEFAULT '',
+        role VARCHAR(50) NOT NULL DEFAULT 'student', 
         loginAttempts INTEGER NOT NULL DEFAULT 0, 
-        lockUntil DATETIME, 
+        lockUntil DATETIME,
+        secretKey VARCHAR(255),
         createdAt DATETIME NOT NULL, 
         updatedAt DATETIME NOT NULL
       );

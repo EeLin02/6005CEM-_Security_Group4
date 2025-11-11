@@ -1,11 +1,15 @@
 const auth = require('basic-auth');
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
+const speakeasy = require('speakeasy');
+const jwt = require('jsonwebtoken');
+
+const secret = process.env.JWT_SECRET;
 
 /**
  * Middleware to authenticate user credentials and apply progressive lockout.
  */
-exports.authenticateUser = async (req, res, next) => {
+async function authenticateUser(req, res, next) {
   let message;
   const credentials = auth(req);
 
@@ -13,7 +17,7 @@ exports.authenticateUser = async (req, res, next) => {
     const user = await User.findOne({ where: { emailAddress: credentials.name } });
 
     if (user) {
-      //  Check if account is locked
+      // Check if account is locked
       if (user.lockUntil && user.lockUntil > new Date()) {
         const remainingMs = user.lockUntil - new Date();
         const remainingMinutes = Math.ceil(remainingMs / 60000);
@@ -29,52 +33,76 @@ exports.authenticateUser = async (req, res, next) => {
 
       // Validate password
       const authenticated = bcrypt.compareSync(credentials.pass, user.password);
-      if (authenticated) {
-        console.log(`Authentication successful for ${credentials.name}`);
 
-        // Reset lock status
+      if (authenticated) {
+        console.log(`✅ Authentication successful for ${credentials.name}`);
+
+        // Reset lock status after successful login
         user.loginAttempts = 0;
         user.lockUntil = null;
         await user.save();
 
+        // 2FA check: if user has secretKey, verify token
         if (user.secretKey) {
-          return res.status(402).json({ message: '2FA required.', userId: user.id });
+          const token = req.headers['x-2fa-token'] || req.body.token;
+
+          if (!token) {
+            // No token provided, prompt for 2FA token
+            return res.status(402).json({ message: '2FA required.', userId: user.id });
+          }
+
+          // Verify 2FA token
+          const verified = speakeasy.totp.verify({
+            secret: user.secretKey,
+            encoding: 'base32',
+            token: token,
+            window: 1 // allow token window (adjust as needed)
+          });
+
+          if (!verified) {
+            // Invalid 2FA token
+            return res.status(401).json({ message: 'Invalid 2FA token.' });
+          }
         }
 
+        // ✅ 2FA passed or not enabled - authentication complete
         req.currentUser = user;
         return next();
       } else {
-        //  Failed login attempt
+        // Failed login attempt - increment loginAttempts and possibly lock account
         user.loginAttempts += 1;
 
-        // Determine lockout duration based on failed attempts
+        // Progressive lockout duration calculation
         const attempt = user.loginAttempts;
         let lockDurationMinutes = 0;
 
-        // Progressive lockout schedule (exponential)
-        if (attempt >= 5 && attempt < 8) lockDurationMinutes = 5;      // 5 min
-        else if (attempt >= 8 && attempt < 10) lockDurationMinutes = 10; // 10 min
-        else if (attempt >= 10 && attempt < 12) lockDurationMinutes = 30; // 30 min
-        else if (attempt >= 12 && attempt < 15) lockDurationMinutes = 60; // 1 hour
-        else if (attempt >= 15) lockDurationMinutes = 180;               // 3 hours (max cap)
+        if (attempt >= 5 && attempt < 8) lockDurationMinutes = 5;
+        else if (attempt >= 8 && attempt < 10) lockDurationMinutes = 10;
+        else if (attempt >= 10 && attempt < 12) lockDurationMinutes = 30;
+        else if (attempt >= 12 && attempt < 15) lockDurationMinutes = 60;
+        else if (attempt >= 15) lockDurationMinutes = 180;
 
         if (lockDurationMinutes > 0) {
           user.lockUntil = new Date(Date.now() + lockDurationMinutes * 60 * 1000);
-          console.warn(`Account locked for ${user.emailAddress} (${lockDurationMinutes} mins) after ${attempt} failed attempts.`);
+          console.warn(`🔒 Account locked for ${user.emailAddress} (${lockDurationMinutes} mins) after ${attempt} failed attempts.`);
         }
 
         await user.save();
+
         message = `Authentication failed for user ${credentials.name}`;
+        console.warn(`❌ ${message}`);
+        return res.status(401).json({ message });
       }
     } else {
-      message = `User ${credentials.name} not found.`;
+      message = `User not found for ${credentials.name}`;
+      console.warn(`❌ ${message}`);
+      return res.status(401).json({ message });
     }
   } else {
     message = 'Auth header not found.';
+    console.warn(`⚠️ ${message}`);
+    return res.status(401).json({ message });
   }
+}
 
-  if (message) {
-    console.warn(message);
-    res.status(401).json({ message });
-  }
-};
+module.exports = { authenticateUser };

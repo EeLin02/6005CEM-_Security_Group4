@@ -146,6 +146,20 @@ header nav a:hover {
     margin-bottom: 0;
 }
 
+select.form-input {
+  border: 1px solid #8c789b;
+  border-radius: 0.5rem;      
+  padding: .5rem;           
+  font-family: 'Work Sans', sans-serif;
+  font-size: .8rem;
+  color: #332a40;
+  width: 100%;
+  margin-bottom: 1rem;
+  background: #fff;        
+  box-sizing: border-box;
+  appearance: none;      
+}
+
 .form--centered {
     max-width: 510px;
     margin: 0 auto;

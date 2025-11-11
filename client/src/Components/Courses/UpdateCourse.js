@@ -82,7 +82,7 @@ const UpdateCourse = () => {
       userId: authUser.id,
     };
 
-    context.data.updateCourse(id, course, authUser.emailAddress, authUser.password)
+    context.data.updateCourse(id, course)
       .then((response) => {
         if (response.length) {
           setErrors(response);
