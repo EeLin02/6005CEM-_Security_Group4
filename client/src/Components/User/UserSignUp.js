@@ -99,29 +99,35 @@ const UserSignUp = () => {
         : null
       }
       {!qrCodeUrl ? (
-        <form>
-          <label htmlFor="firstName">First Name</label>
-          <input id="firstName" name="firstName" type="text" value={firstName} onChange={onChange} />
-          <label htmlFor="lastName">Last Name</label>
-          <input id="lastName" name="lastName" type="text" value={lastName} onChange={onChange} />
-          <label htmlFor="emailAddress">Email Address</label>
-          <input id="emailAddress" name="emailAddress" type="email" value={emailAddress} onChange={onChange} />
-          <label htmlFor="password">Password</label>
-          <label htmlFor="role">Role:</label>
-          <select
-            name="role"
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="form-input"
-          >
-            <option value="student">Student</option>
-            <option value="teacher">Teacher</option>
-          </select>
-          <input id="password" name="password" type="password" value={password} onChange={onChange} />
-          <button className="button" type="submit" onClick={submit}>Sign Up</button>
-          <button className="button button-secondary" onClick={cancel}>Cancel</button>
-        </form>
+<form>
+  <label htmlFor="firstName">First Name</label>
+  <input id="firstName" name="firstName" type="text" value={firstName} onChange={onChange} />
+
+  <label htmlFor="lastName">Last Name</label>
+  <input id="lastName" name="lastName" type="text" value={lastName} onChange={onChange} />
+
+  <label htmlFor="emailAddress">Email Address</label>
+  <input id="emailAddress" name="emailAddress" type="email" value={emailAddress} onChange={onChange} />
+
+  <label htmlFor="password">Password</label>
+  <input id="password" name="password" type="password" value={password} onChange={onChange} />
+
+  <label htmlFor="role">Role:</label>
+  <select
+    name="role"
+    id="role"
+    value={role}
+    onChange={(e) => setRole(e.target.value)}
+    className="form-input"
+  >
+    <option value="student">Student</option>
+    <option value="teacher">Teacher</option>
+  </select>
+
+  <button className="button" type="submit" onClick={submit}>Sign Up</button>
+  <button className="button button-secondary" onClick={cancel}>Cancel</button>
+</form>
+
       ) : (
         <div>
           <h3>Set up 2-Factor Authentication</h3>
