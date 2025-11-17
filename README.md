@@ -33,17 +33,25 @@ Click on the 'Code' button and clone this project via command line or select 'Do
 1. Open the folder on the command line, such as Git Bash, Powershell or Terminal.
 1. Run `npm install` in both the `api` and `client` folders to install all dependencies to run this project.
 1. On the `api` folder, run `npm run seed` to initialise the database with sample data
+2.  On the `api` folder, run `node server.js` to start the backend server
 1. Run `npm start` to start the application.
 1. Open your browser/API testing platform and visit [http://localhost:3000](http://localhost:3000).
 
 ## Available Scripts
 In the project directory, you can run:
-
+In the API directory:
 ### `npm install`
-To install and update project dependencies.
+To install and update backend dependencies.
 
 ### `npm run seed`
 To initialise the database with sample data.
+
+### `node server.js`
+Starts the backend API server on http://localhost:5000.
+
+In the Client directory:
+### `npm install`
+To install and update frontend dependencies.
 
 ### `npm start`
 Runs the app in the development mode.\
