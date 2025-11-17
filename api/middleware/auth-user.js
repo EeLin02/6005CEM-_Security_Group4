@@ -37,7 +37,8 @@ exports.authenticateUser = async (req, res, next) => {
         user.lockUntil = null;
         await user.save();
 
-        if (user.secretKey) {
+        const isLoginAttempt = req.originalUrl === '/api/users' && req.method === 'GET';
+        if (user.secretKey && isLoginAttempt && !req.headers['x-2fa-verified']) {
           return res.status(402).json({ message: '2FA required.', userId: user.id });
         }
 

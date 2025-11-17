@@ -12,6 +12,7 @@ const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'tr
 
 const userRouter = require('./routes/users');
 const courseRouter = require('./routes/courses');
+const passwordRouter = require('./routes/password');
 
 // create the Express app
 const app = express();
@@ -33,8 +34,9 @@ app.get('/', (req, res) => {
 });
 
 // Add routes
-app.use('/api', userRouter);
-app.use('/api', courseRouter);
+app.use('/api/users', userRouter);
+app.use('/api/courses', courseRouter);
+app.use('/api/password', passwordRouter);
 
 // send 404 if no other route matched
 app.use((req, res) => {

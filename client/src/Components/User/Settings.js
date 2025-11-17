@@ -25,7 +25,7 @@ const Settings = () => {
         firstName: user.firstName,
         lastName: user.lastName,
       };
-      await actions.updateUser(updatedUser, null, authenticatedUser.emailAddress);
+      await actions.updateUser(updatedUser, authenticatedUser.emailAddress);
       navigate('/courses');
     } catch (error) {
       console.error('Error updating user:', error);

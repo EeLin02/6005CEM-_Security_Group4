@@ -50,8 +50,6 @@ router.post('/', asyncHandler(async (req, res) => {
       userId: newUser.id
     });
   } catch (error) {
-      console.error('🧱 Error creating user:', error); // <--- ADD THIS
-
     if (
       error.name === 'SequelizeValidationError' ||
       error.name === 'SequelizeUniqueConstraintError'
@@ -65,42 +63,28 @@ router.post('/', asyncHandler(async (req, res) => {
   }
 }));
 
-// 🔍 DEBUG ROUTE — check all users (temporary for testing)
-router.get('/all', asyncHandler(async (req, res) => {
-  try {
-    const users = await User.findAll({
-      attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
-    });
-    res.json(users);
-  } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-}));
-
 // PUT /api/users -> update an existing user
 router.put('/', authenticateUser, asyncHandler(async (req, res) => {
   try {
     const user = req.currentUser;
-    const updatedUser = req.body;
+    const { firstName, lastName, password } = req.body;
 
-    console.log('--- DEBUG: Current User ---');
-    console.log(user);
-    console.log('--- DEBUG: Updated User Data from Body ---');
-    console.log(updatedUser);
+    const updatedFields = {};
+    if (firstName !== undefined) updatedFields.firstName = firstName;
+    if (lastName !== undefined) updatedFields.lastName = lastName;
 
-    if (updatedUser.password) {
-      updatedUser.password = await bcrypt.hash(updatedUser.password, parseInt(process.env.SALT_ROUNDS || '10'));
-      console.log('--- DEBUG: Updated User Data After Hashing ---');
-      console.log(updatedUser);
+    if (password) {
+      if (password.length < 8) {
+        return res.status(400).json({
+          errors: ['Password must be at least 8 characters long.']
+        });
+      }
+      updatedFields.password = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS || '10'));
     }
 
-    const [updateCount] = await User.update(updatedUser, {
-      where: { id: user.id }
-    });
-
-    console.log('--- DEBUG: Sequelize Update Result ---');
-    console.log({ updateCount });
+    if (Object.keys(updatedFields).length > 0) {
+      await user.update(updatedFields);
+    }
 
     res.status(204).end();
   } catch (error) {
@@ -123,6 +107,7 @@ router.post('/verify-password', authenticateUser, asyncHandler(async (req, res) 
     const { password } = req.body;
 
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password verification result (isMatch):', isMatch);
 
     res.status(200).json({ isMatch });
   } catch (error) {
