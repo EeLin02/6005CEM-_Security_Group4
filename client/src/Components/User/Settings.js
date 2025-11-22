@@ -7,6 +7,7 @@ const Settings = () => {
   const { authenticatedUser, actions } = useContext(context.Context);
   const [user, setUser] = useState(authenticatedUser);
   const [showModal, setShowModal] = useState(false);
+  const [errors, setErrors] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,11 +26,15 @@ const Settings = () => {
         firstName: user.firstName,
         lastName: user.lastName,
       };
-      await actions.updateUser(updatedUser, null, authenticatedUser.emailAddress);
-      navigate('/courses');
+      const result = await actions.updateUser(updatedUser);
+      if (result.length === 0) {
+        navigate('/courses');
+      } else {
+        setErrors(result);
+      }
     } catch (error) {
       console.error('Error updating user:', error);
-      // Handle error (e.g., show error message)
+      setErrors(['An unexpected error occurred.']);
     }
   };
 
@@ -41,6 +46,14 @@ const Settings = () => {
     <div className="wrap">
       {showModal && <ChangePasswordModal setShowModal={setShowModal} />}
       <h2>Settings</h2>
+      {errors.length > 0 && (
+        <div className="validation--errors">
+          <h3>Validation Errors</h3>
+          <ul>
+            {errors.map((error, i) => <li key={i}>{error}</li>)}
+          </ul>
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <div className="main--flex">
           <div>

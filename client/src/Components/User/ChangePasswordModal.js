@@ -21,6 +21,7 @@ const ChangePasswordModal = ({ setShowModal }) => {
         setError('Incorrect password.');
       }
     } catch (error) {
+      console.error('Verify password error:', error);
       setError('An error occurred.');
     }
   };
@@ -32,9 +33,23 @@ const ChangePasswordModal = ({ setShowModal }) => {
       return;
     }
     try {
-      await actions.updateUser({ password: newPassword }, authenticatedUser.emailAddress, oldPassword);
-      setShowModal(false);
+      const result = await actions.updateUser({
+        password: newPassword,
+        oldPassword: oldPassword,
+      });
+      
+      if (result.length === 0) {
+        // Success - clear sensitive data and close modal
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setShowModal(false);
+      } else {
+        // Display the specific error from the API
+        setError(result[0]);
+      }
     } catch (error) {
+      console.error('Update password error:', error);
       setError('An error occurred while updating the password.');
     }
   };

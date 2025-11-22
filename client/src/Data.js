@@ -2,8 +2,38 @@ import config from './config';
 
 export default class Data {
   /**
-   * Get the user from the database for Sign In (Basic Auth only for login)
+   * Centralized API request handler
+   * @param {string} path - API endpoint path
+   * @param {string} method - HTTP method (GET, POST, PUT, DELETE)
+   * @param {object} body - Request body (optional)
+   * @param {boolean} requiresAuth - Whether Basic Auth is needed
+   * @param {object} credentials - Username/password for Basic Auth
+   * @returns {Promise} Fetch response
    */
+
+    api(path, method = 'GET', body = null, requiresAuth = false, credentials = null) {
+    const url = config.apiBaseUrl + path;
+
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      credentials: 'include', // ✅ Always include for HttpOnly cookies
+    };
+
+    if (body !== null) {
+      options.body = JSON.stringify(body);
+    }
+
+    if (requiresAuth && credentials) {
+      const encodedCredentials = btoa(`${credentials.username}:${credentials.password}`);
+      options.headers['Authorization'] = `Basic ${encodedCredentials}`;
+    }
+
+    return fetch(url, options);
+  }
+
   async getUser(username, password) {
     const encodedCredentials = btoa(`${username}:${password}`);
     const response = await fetch(config.apiBaseUrl + '/users', {
@@ -196,22 +226,49 @@ export default class Data {
   /**
    * Update user with Basic Auth
    */
-  async updateUser(user, emailAddress, oldPassword) {
-    const encodedCredentials = btoa(`${emailAddress}:${oldPassword}`);
-    const response = await fetch(config.apiBaseUrl + `/users`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Basic ${encodedCredentials}`,
-      },
-      body: JSON.stringify(user),
-      credentials: 'include',
-    });
+  // async updateUser(user, emailAddress, oldPassword) {
+  //   const encodedCredentials = btoa(`${emailAddress}:${oldPassword}`);
+  //   const response = await fetch(config.apiBaseUrl + `/users`, {
+  //     method: 'PUT',
+  //     headers: {
+  //       'Content-Type': 'application/json; charset=utf-8',
+  //       'Authorization': `Basic ${encodedCredentials}`,
+  //     },
+  //     body: JSON.stringify(user),
+  //     credentials: 'include',
+  //   });
+
+  //   if (response.status === 204) {
+  //     return [];
+  //   } else if (response.status === 400) {
+  //     return response.json().then(data => data.errors);
+  //   } else {
+  //     throw new Error();
+  //   }
+  // }
+
+  /**
+   * Update user details (profile or password) using JWT for auth.
+   * @param {object} payload - The data to update.
+   *   - For profile: { firstName, lastName }
+   *   - For password: { password, oldPassword }
+   */
+  async updateUser(payload) {
+    const response = await this.api(
+      '/users',
+      'PUT',
+      payload,
+      false // No Basic Auth, relies on HttpOnly JWT cookie
+    );
 
     if (response.status === 204) {
       return [];
-    } else if (response.status === 400) {
-      return response.json().then(data => data.errors);
+    } else if (response.status === 400 || response.status === 401) {
+      return response.json().then(data => {
+        // Ensure the error format is consistent (array of messages)
+        if (data.message) return [data.message];
+        return data.errors || ['An unknown error occurred.'];
+      });
     } else {
       throw new Error();
     }
@@ -220,17 +277,34 @@ export default class Data {
   /**
    * Verify password with Basic Auth
    */
+  // async verifyPassword(password, emailAddress, currentPassword) {
+  //   const encodedCredentials = btoa(`${emailAddress}:${currentPassword}`);
+  //   const response = await fetch(config.apiBaseUrl + `/users/verify-password`, {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json; charset=utf-8',
+  //       'Authorization': `Basic ${encodedCredentials}`,
+  //     },
+  //     body: JSON.stringify({ password }),
+  //     credentials: 'include',
+  //   });
+  //   return response;
+  // }
+
   async verifyPassword(password, emailAddress, currentPassword) {
-    const encodedCredentials = btoa(`${emailAddress}:${currentPassword}`);
-    const response = await fetch(config.apiBaseUrl + `/users/verify-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Basic ${encodedCredentials}`,
-      },
-      body: JSON.stringify({ password }),
-      credentials: 'include',
-    });
+    const response = await this.api(
+      '/users/verify-password', 
+      'POST', 
+      { password }, 
+      true, 
+      { username: emailAddress, password: currentPassword }
+    );
+    console.log(response);
+    return response;
+  }
+
+  async verify2FA(userId, token) {
+    const response = await this.api(`/users/verify-2fa`, 'POST', { userId, token });
     return response;
   }
 

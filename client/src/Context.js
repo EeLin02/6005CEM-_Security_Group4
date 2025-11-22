@@ -15,14 +15,14 @@ export class Provider extends Component {
   }
 
   /**
-   * Verify user password
+   * Verify user password - requires actual password input from user
    */
   verifyPassword = async (password) => {
     console.log('verifyPassword in Context.js called');
     const response = await this.data.verifyPassword(
       password,
       this.state.authenticatedUser.emailAddress,
-      this.state.authenticatedUser.password
+      password
     );
     return response;
   };
@@ -30,22 +30,22 @@ export class Provider extends Component {
   /**
    * Update user information
    */
-  updateUser = async (user, emailAddress, oldPassword) => {
-    const response = await this.data.updateUser(
-      user,
-      emailAddress,
-      oldPassword || this.state.authenticatedUser.password
-    );
+  /**
+   * Update user information (profile or password)
+   * @param {object} payload - The data to update
+   */
+  updateUser = async (payload) => {
+    const response = await this.data.updateUser(payload);
     if (response.length === 0) {
-      const updatedAuthenticatedUser = {
-        ...this.state.authenticatedUser,
-        ...user,
-      };
-      if (user.password) {
-        updatedAuthenticatedUser.password = user.password;
+      // If it was a profile update, update the user in state
+      if (!payload.password) {
+        const updatedAuthenticatedUser = {
+          ...this.state.authenticatedUser,
+          ...payload,
+        };
+        this.setState({ authenticatedUser: updatedAuthenticatedUser });
+        Cookies.set('authenticatedUser', JSON.stringify(updatedAuthenticatedUser), { expires: 1 });
       }
-      this.setState({ authenticatedUser: updatedAuthenticatedUser });
-      Cookies.set('authenticatedUser', JSON.stringify(updatedAuthenticatedUser), { expires: 1 });
     }
     return response;
   };
@@ -54,12 +54,19 @@ export class Provider extends Component {
    * Sign in user
    */
   signIn = async (emailAddress, password) => {
+    // Use the new signIn() from Data.js (handles 401 + 403 + lock message)
     const user = await this.data.signIn(emailAddress, password);
+
+    // Successful login
     if (user && user.id) {
-      const authenticatedUser = { ...user, password };
+      // Do not store password in cookie - security risk
+      const authenticatedUser = { ...user };
+      delete authenticatedUser.password; // Remove password field
       this.setState({ authenticatedUser });
       Cookies.set('authenticatedUser', JSON.stringify(authenticatedUser), { expires: 1 });
     }
+
+    // Return message (if account locked/invalid)
     return user;
   };
 
@@ -88,8 +95,10 @@ export class Provider extends Component {
     return response;
   };
 
-  setAuthenticatedUser = (user, password) => {
-    const authenticatedUser = { ...user, password };
+  setAuthenticatedUser = (user) => {
+    // Never accept password parameter
+    const authenticatedUser = { ...user };
+    delete authenticatedUser.password; // Remove password if present
     this.setState({ authenticatedUser });
     Cookies.set('authenticatedUser', JSON.stringify(authenticatedUser), { expires: 1 });
   };
@@ -126,9 +135,9 @@ export const Consumer = Context.Consumer;
 export function withContext(Component) {
   return function ContextComponent(props) {
     return (
-      <Consumer>
+      <Context.Consumer>
         {(context) => <Component {...props} context={context} />}
-      </Consumer>
+      </Context.Consumer>
     );
   };
 }

@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const secret = process.env.JWT_SECRET;
 const { User } = require('../models');
 const { authenticateUser } = require('../middleware/auth-user');
+const { verifyJWT } = require('../middleware/verify-jwt');
 const { asyncHandler } = require('../middleware/async-handler');
 
 const router = express.Router();
@@ -34,11 +35,14 @@ router.post('/', asyncHandler(async (req, res) => {
       });
     }
 
+    // Hash password before saving
     user.password = await bcrypt.hash(user.password, parseInt(process.env.SALT_ROUNDS || '10'));
+
     const secretKey = speakeasy.generateSecret();
     user.secretKey = secretKey.base32;
 
     const newUser = await User.create(user);
+
     const qrCodeUrl = await qrcode.toDataURL(secretKey.otpauth_url);
 
     res.status(201).json({
@@ -75,19 +79,44 @@ router.get('/all', asyncHandler(async (req, res) => {
   }
 }));
 
-// ✅ PUT /api/users → update an existing user (uses Basic Auth)
-router.put('/', authenticateUser, asyncHandler(async (req, res) => {
+// ✅ PUT /api/users → update an existing user (uses JWT)
+router.put('/', verifyJWT, asyncHandler(async (req, res) => {
   try {
-    const user = req.currentUser;
-    const updatedUser = req.body;
+    const user = req.currentUser; // from JWT
+    const { firstName, lastName, password, oldPassword } = req.body;
 
-    if (updatedUser.password) {
-      updatedUser.password = await bcrypt.hash(updatedUser.password, parseInt(process.env.SALT_ROUNDS || '10'));
+    const updatedFields = {};
+
+    // If password is being updated
+    if (password) {
+      if (!oldPassword) {
+        return res.status(400).json({ message: 'Old password is required to change your password.' });
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Incorrect old password.' });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({
+          errors: ['Password must be at least 8 characters long']
+        });
+      }
+      updatedFields.password = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS || '10'));
     }
 
-    const [updateCount] = await User.update(updatedUser, {
-      where: { id: user.id }
-    });
+    // If profile info is being updated
+    if (firstName !== undefined) {
+      updatedFields.firstName = firstName;
+    }
+    if (lastName !== undefined) {
+      updatedFields.lastName = lastName;
+    }
+
+    if (Object.keys(updatedFields).length > 0) {
+      await user.update(updatedFields);
+    }
 
     res.status(204).end();
   } catch (error) {
@@ -108,7 +137,10 @@ router.post('/verify-password', authenticateUser, asyncHandler(async (req, res) 
   try {
     const user = req.currentUser;
     const { password } = req.body;
+
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password verification result (isMatch):', isMatch);
+
     res.status(200).json({ isMatch });
   } catch (error) {
     res.status(500).json({ error: error.message });

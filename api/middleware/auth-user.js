@@ -42,8 +42,26 @@ async function authenticateUser(req, res, next) {
         user.lockUntil = null;
         await user.save();
 
-        // 2FA check: if user has secretKey, verify token
-        if (user.secretKey) {
+        // Define routes that should skip 2FA check (use Basic Auth only)
+        const skip2FARoutes = [
+          { path: '/api/users', method: 'PUT' },              // updateUser
+          { path: '/api/users/verify-password', method: 'POST' }  // verifyPassword
+        ];
+
+        const shouldSkip2FA = skip2FARoutes.some(
+          route => req.originalUrl === route.path && req.method === route.method
+        );
+
+        // Check if this is a login attempt (requires 2FA if enabled)
+        const isLoginAttempt = req.originalUrl === '/api/users' && req.method === 'GET';
+        // Only require 2FA for login attempts, not for profile updates
+        if (user.secretKey && isLoginAttempt && !req.headers['x-2fa-verified']) {
+          return res.status(402).json({ message: '2FA required', userId: user.id})
+        }
+
+
+        // For other authenticated routes (except skip routes), check 2FA if enabled
+        if (user.secretKey && !shouldSkip2FA && !isLoginAttempt) {
           const token = req.headers['x-2fa-token'] || req.body.token;
 
           if (!token) {
